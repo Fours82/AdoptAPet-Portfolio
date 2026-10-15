@@ -1,0 +1,5 @@
+Options -Indexes
+
+RewriteEngine On
+RewriteRule ^(?:backups|config|docs|storage|tmp|tools|vendor)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:composer\.(?:json|lock)|README\.md|FYP\.md|\.gitignore)$ - [F,L,NC]

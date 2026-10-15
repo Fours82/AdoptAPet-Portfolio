@@ -1,0 +1,89 @@
+# Local configuration and sensitive secrets
+.env
+.env.*
+!.env.example
+/config/*.local.php
+/config/database-demo.sql
+
+# Composer dependencies
+/vendor/
+
+# Runtime storage: ignore generated files but keep directory guards/placeholders
+/storage/**
+!/storage/
+!/storage/.htaccess
+!/storage/.gitkeep
+!/storage/**/
+!/storage/**/.htaccess
+!/storage/**/.gitkeep
+
+# User-uploaded files (retain only local upload guards)
+/public/uploads/**
+!/public/uploads/
+!/public/uploads/**/
+!/public/uploads/**/.htaccess
+!/public/uploads/**/.gitkeep
+
+# Temporary files, logs, and local backups
+*.log
+*.tmp
+*.bak
+*.old
+/backups/
+/tmp/
+
+# Local database files
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# Operating system and IDE files
+.DS_Store
+Thumbs.db
+.idea/
+
+# Local private keys and certificate bundles
+*.key
+*-key.pem
+*.pem
+*.p8
+*.p12
+*.pfx
+
+# Local SQL dumps and exports; keep the reviewed public seed
+*.sql
+!/config/database-public.sql
+
+# Reviewed public sample images listed in docs/IMAGE_CREDITS.md
+!/public/uploads/news/783ec644f0fe08d4dcb1df6ee8c0cc78.jpg
+!/public/uploads/news/78b4e0d5c56659ad6c862d0fcc162488.jpg
+!/public/uploads/news/87ca673fd96ef45ac5961b1523eacc70.jpg
+!/public/uploads/news/c19f05cbeb8b3d03c03daf7152a6ed75.jpg
+!/public/uploads/news/e6eef587c9bcb3cb133aa80657f5eb80.jpg
+!/public/uploads/pets/03ea1d44b6e197590ebff253e33c6f4b.jpg
+!/public/uploads/pets/0898d634b6cc2f6ec819ddf171468499.jpg
+!/public/uploads/pets/1031ad4b25e4485abd5dc276fcfb6866.jpg
+!/public/uploads/pets/2daf5f571ce3d5c3170c28e6e3fd5a7f.jpg
+!/public/uploads/pets/550519b02bbbd2b37623b39638ed0241.jpg
+!/public/uploads/pets/6015123502801a37ac128eeb823ecc3c.jpg
+!/public/uploads/pets/62777d2e0b9683d8e58d08ba5b2b0bdd.jpg
+!/public/uploads/pets/779feeb5a57b71c365f9bddb909fea04.png
+!/public/uploads/pets/77d34b757e4d0c91d5ac316cad8c307b.jpg
+!/public/uploads/pets/7c101f20eac024c9bf93af01396fffe7.jpg
+!/public/uploads/pets/8ec002c2874d45d0bc93b883f982007f.jpg
+!/public/uploads/pets/90ba6106c1bf4bf784a38f80f4ead935.jpg
+!/public/uploads/pets/a11a55375eec01ec844f9c33a8e315a1.jpg
+!/public/uploads/pets/a523cdcf7f9eebab59ca3e89fd243511.jpg
+!/public/uploads/pets/c10c793b0601cdf10fb7484980f14a0a.jpg
+!/public/uploads/pets/d327454ba53e717ad26f55ce6e716ebd.jpg
+!/public/uploads/pets/d573473faebcddd2e35b8e5937b39aae.jpg
+!/public/uploads/strays/0d0fa21962e562b7ed6ce576652fb27f.jpg
+!/public/uploads/strays/1087ac2c5cadf6f3459cffeb93d721d4.jpg
+!/public/uploads/strays/327f316b358891935c329d7bd7407162.jpg
+!/public/uploads/strays/3d6f82c4efad2e839037cd4d44dd7eee.jpg
+!/public/uploads/strays/6887b66367b07ded2923618f7bae8d06.jpg
+!/public/uploads/strays/783ec644f0fe08d4dcb1df6ee8c0cc78.jpg
+!/public/uploads/strays/87704256efac5e445275f1e0e8cc9fea.jpg
+!/public/uploads/strays/d6aee9a1bf642b6c90e4851e72b85ff1.jpg
+!/public/uploads/strays/dd74a647a3bea60933e3ed992f803002.jpg

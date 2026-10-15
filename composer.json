@@ -1,0 +1,8 @@
+{
+    "require": {
+        "php": "^8.1",
+        "phpmailer/phpmailer": "^7.1",
+        "setasign/fpdf": "^1.8",
+        "bacon/bacon-qr-code": "^3.1"
+    }
+}

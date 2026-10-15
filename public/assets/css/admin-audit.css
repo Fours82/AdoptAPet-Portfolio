@@ -1,0 +1,168 @@
+.admin-audit-panel {
+  padding: 1.25rem
+}
+
+.admin-audit-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem
+}
+
+.admin-audit-toolbar h2 {
+  margin: 0 0 .25rem
+}
+
+.admin-audit-toolbar p {
+  margin: 0
+}
+
+.admin-audit-toolbar .field {
+  min-width: 12rem
+}
+
+.admin-audit-table {
+  width: 100%;
+  min-width: 1100px;
+  table-layout: fixed
+}
+
+.admin-audit-table th,
+.admin-audit-table td {
+  vertical-align: top
+}
+
+.admin-audit-table th,
+.admin-audit-table td {
+  padding: .7rem .65rem;
+  white-space: normal;
+  overflow-wrap: anywhere
+}
+
+.admin-audit-table th:nth-child(1) {
+  width: 13%
+}
+
+.admin-audit-table th:nth-child(2) {
+  width: 13%
+}
+
+.admin-audit-table th:nth-child(3) {
+  width: 18%
+}
+
+.admin-audit-table th:nth-child(4) {
+  width: 13%
+}
+
+.admin-audit-table th:nth-child(5) {
+  width: 16%
+}
+
+.admin-audit-table th:nth-child(6) {
+  width: 27%
+}
+
+.admin-audit-target small {
+  display: block;
+  color: #74665a;
+  font-size: .8em;
+  margin-top: .15rem
+}
+
+.admin-audit-table td:last-child {
+  color: #61564c
+}
+
+.admin-audit-pagination {
+  display: block
+}
+
+@media(max-width:60rem) {
+  .admin-audit-toolbar {
+    align-items: stretch;
+    flex-direction: column
+  }
+
+  .admin-audit-toolbar .field {
+    width: 100%
+  }
+
+  .admin-audit-panel {
+    padding: 1rem
+  }
+
+  .admin-audit-panel .table-wrap {
+    overflow: visible
+  }
+
+  .admin-audit-table,
+  .admin-audit-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0
+  }
+
+  .admin-audit-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0)
+  }
+
+  .admin-audit-table tbody {
+    display: grid;
+    gap: .7rem
+  }
+
+  .admin-audit-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: .7rem;
+    border: 1px solid #ead8c4;
+    border-radius: .55rem
+  }
+
+  .admin-audit-table tbody td {
+    display: block;
+    width: auto !important;
+    padding: .45rem;
+    border: 0;
+    white-space: normal
+  }
+
+  .admin-audit-table tbody td::before {
+    display: block;
+    margin-bottom: .18rem;
+    color: #75675d;
+    content: attr(data-label);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .055em;
+    text-transform: uppercase
+  }
+
+  .admin-audit-table tbody td:last-child {
+    grid-column: 1/-1
+  }
+
+  .admin-audit-table tbody td[colspan] {
+    grid-column: 1/-1
+  }
+
+  .admin-audit-table tbody td[colspan]::before {
+    content: none
+  }
+}
+
+@media(max-width:30rem) {
+  .admin-audit-table tbody tr {
+    grid-template-columns: minmax(0, 1fr)
+  }
+
+  .admin-audit-table tbody td {
+    grid-column: 1
+  }
+}
