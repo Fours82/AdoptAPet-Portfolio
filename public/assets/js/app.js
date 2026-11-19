@@ -707,7 +707,7 @@ function setAuthMessage(message) {
 }
 function login() {
   return shell(
-    `<div class="login-wrap"><div class="panel auth-card"><a class="auth-back" href="#/">← Back</a><header class="auth-heading"><h1>Log in</h1><p>Sign in to continue to AdoptAPet.</p></header><form onsubmit="doLogin(event)" novalidate><div class="field"><label for="login-email">Email address <span class="required">*</span></label>${emailInput('login-email')}</div><div class="field auth-field-gap"><div class="auth-label-row"><label for="login-password">Password <span class="required">*</span></label><a href="#/forgot-password">Forgot password?</a></div>${passwordInput('login-password', 'Your password', 'current-password')}</div>${hcaptchaMarkup('login-captcha', true)}${authMessage()}<button id="login-submit" class="btn auth-primary" type="submit">${uiIcon('lock')} Log in</button><p class="auth-secondary">New to AdoptAPet? <a href="#/register">Create account</a></p></form></div></div>`,
+    `<div class="login-wrap"><div class="panel auth-card"><a class="auth-back" href="#/">← Back</a><header class="auth-heading"><h1>Log in</h1><p>Sign in to continue to AdoptAPet.</p></header><form onsubmit="doLogin(event)" novalidate><div class="field"><label for="login-email">Email address <span class="required">*</span></label>${emailInput('login-email')}</div><div class="field auth-field-gap"><div class="auth-label-row"><label for="login-password">Password <span class="required">*</span></label><a href="#/forgot-password">Forgot password?</a></div>${passwordInput('login-password', 'Your password', 'current-password')}</div>${hcaptchaMarkup('login-captcha', true)}${authMessage()}<button id="login-submit" class="btn auth-primary" type="submit">${uiIcon('lock')} Log in</button><p class="auth-secondary">Didn't verify your email? <a href="#/verify-email?mode=recovery">Resend verification code</a></p><p class="auth-secondary">New to AdoptAPet? <a href="#/register">Create account</a></p></form></div></div>`,
   );
 }
 async function doLogin(event) {
@@ -796,7 +796,7 @@ async function logout() {
 function register() {
   setTimeout(() => mountHcaptcha('register-captcha'), 0);
   return shell(
-    `<div class="login-wrap auth-wide"><div class="panel auth-card"><a class="auth-back" href="#/login">← Back</a><header class="auth-heading"><h1>Create account</h1><p>Join AdoptAPet to apply, report strays, and support animal welfare.</p></header><form onsubmit="doRegister(event)" novalidate><div class="form-grid"><div class="field full"><label for="reg-username">Username <span class="required">*</span></label><input id="reg-username" class="input" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="username" aria-describedby="reg-username-helper" required placeholder="Ali"><p id="reg-username-helper" class="helper">3–20 characters. Letters, numbers and underscores only.</p></div><div class="field"><label for="reg-name">Full name <span class="required">*</span></label><input id="reg-name" class="input" maxlength="150" autocomplete="name" required placeholder="Your full name"></div><div class="field"><label for="reg-email">Email address <span class="required">*</span></label>${emailInput('reg-email')}</div><div class="field full"><label for="reg-pass">Password <span class="required">*</span></label>${passwordInput('reg-pass', '8+ characters, uppercase, lowercase, number and symbol', 'new-password')}<p class="helper">Use uppercase, lowercase, a number, and a special character.</p></div><div class="field full"><label for="reg-confirm-pass">Confirm password <span class="required">*</span></label>${passwordInput('reg-confirm-pass', 'Repeat your password', 'new-password')}</div></div>${hcaptchaMarkup('register-captcha')}${authMessage()}<button id="register-submit" class="btn auth-primary" type="submit">Create account</button><p class="auth-secondary">Already have an account? <a href="#/login">Log in</a></p></form></div></div>`,
+    `<div class="login-wrap auth-wide"><div class="panel auth-card"><a class="auth-back" href="#/login">← Back</a><header class="auth-heading"><h1>Create account</h1><p>Join AdoptAPet to apply, report strays, and support animal welfare.</p></header><form onsubmit="doRegister(event)" novalidate><div class="form-grid"><div class="field full"><label for="reg-username">Username <span class="required">*</span></label><input id="reg-username" class="input" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" autocomplete="username" aria-describedby="reg-username-helper" required placeholder="Ali"><p id="reg-username-helper" class="helper">3–20 characters. Letters, numbers and underscores only.</p></div><div class="field"><label for="reg-name">Full name <span class="required">*</span></label><input id="reg-name" class="input" maxlength="150" autocomplete="name" required placeholder="Your full name"></div><div class="field"><label for="reg-email">Email address <span class="required">*</span></label>${emailInput('reg-email')}</div><div class="field full"><label for="reg-pass">Password <span class="required">*</span></label>${passwordInput('reg-pass', '8+ characters, uppercase, lowercase, number and symbol', 'new-password')}<p class="helper">Use uppercase, lowercase, a number, and a special character.</p></div><div class="field full"><label for="reg-confirm-pass">Confirm password <span class="required">*</span></label>${passwordInput('reg-confirm-pass', 'Repeat your password', 'new-password')}</div></div>${hcaptchaMarkup('register-captcha')}${authMessage()}<p id="register-verification-recovery" class="auth-secondary" hidden>If you've already registered but haven't verified your email, <a href="#/verify-email?mode=recovery">return to verification to resend a code</a>.</p><button id="register-submit" class="btn auth-primary" type="submit">Create account</button><p class="auth-secondary">Already have an account? <a href="#/login">Log in</a></p></form></div></div>`,
   );
 }
 async function doRegister(event) {
@@ -843,11 +843,17 @@ async function doRegister(event) {
     if (result.verification_required) {
       state.pendingVerificationEmail = e;
       sessionStorage.setItem('pending-verification-email', e);
-      go('/verify-email');
+      go('/verify-email?mode=registration');
       return toast(result.message);
     }
     if (!r.ok || !result.success) {
       resetHcaptcha('register-captcha');
+      if (r.status === 409 && result.message === 'That email address is already registered.') {
+        state.pendingVerificationEmail = e;
+        sessionStorage.setItem('pending-verification-email', e);
+        const recovery = $('#register-verification-recovery');
+        if (recovery) recovery.hidden = false;
+      }
       return setAuthMessage(
         result.message ||
           'Unable to create the account. Please try again later.',
@@ -858,7 +864,7 @@ async function doRegister(event) {
     toast(
       'Registration successful. Check your email for your verification code.',
     );
-    setTimeout(() => go('/verify-email'), 700);
+    setTimeout(() => go('/verify-email?mode=registration'), 700);
   } catch (error) {
     resetHcaptcha('register-captcha');
     setAuthMessage('Unable to create the account. Please try again later.');
@@ -1072,10 +1078,20 @@ async function submitPasswordReset(event) {
     if (button?.isConnected) setButtonBusy(button, false);
   }
 }
+function rememberRecoveryVerificationEmail(email) {
+  state.pendingVerificationEmail = String(email || '');
+  sessionStorage.setItem('pending-verification-email', state.pendingVerificationEmail);
+}
 function verifyEmail() {
-  let locked = Boolean(state.pendingVerificationEmail);
+  const fragment = location.hash.slice(1),
+    queryAt = fragment.indexOf('?'),
+    query = queryAt === -1 ? '' : fragment.slice(queryAt + 1),
+    registrationMode = new URLSearchParams(query).get('mode') === 'registration',
+    prompt = registrationMode && state.pendingVerificationEmail
+      ? `Enter the 6-digit code sent to <b>${esc(state.pendingVerificationEmail)}</b>.`
+      : 'Enter the 6-digit code sent to the email address below.';
   return shell(
-    `<div class="login-wrap"><div class="panel auth-card"><h1>Verify Email</h1><p class="muted">Enter the 6-digit code sent to ${locked ? `<b>${esc(state.pendingVerificationEmail)}</b>` : 'your registered email address'}.</p><div class="field"><label for="verify-email">Email being verified</label>${emailInput('verify-email', { value: state.pendingVerificationEmail, readonly: locked, required: false })}</div><div class="field" style="margin-top:12px"><label>6-digit verification code</label><input id="verify-code" class="input code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>${authMessage()}<div class="form-actions"><button id="verify-email-submit" class="btn" onclick="submitVerification()">Verify email</button><button id="verify-email-resend" class="btn outline" onclick="resendVerification()">Resend code</button></div><p class="footer-note">Verification codes expire after 10 minutes. Invalid and expired codes are never accepted.</p></div></div>`,
+    `<div class="login-wrap"><div class="panel auth-card"><h1>Verify Email</h1><p class="muted">${prompt}</p><div class="field"><label for="verify-email">Email being verified</label>${emailInput('verify-email', { value: state.pendingVerificationEmail, readonly: registrationMode, required: false, oninput: registrationMode ? '' : 'rememberRecoveryVerificationEmail(this.value)' })}</div><div class="field" style="margin-top:12px"><label>6-digit verification code</label><input id="verify-code" class="input code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456"></div>${authMessage()}<div class="form-actions"><button id="verify-email-submit" class="btn" onclick="submitVerification()">Verify email</button><button id="verify-email-resend" class="btn outline" onclick="resendVerification()">Resend code</button></div><p class="footer-note">Verification codes expire after 10 minutes. Invalid and expired codes are never accepted.</p></div></div>`,
   );
 }
 async function submitVerification() {
