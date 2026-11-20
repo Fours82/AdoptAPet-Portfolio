@@ -15,6 +15,42 @@ The platform connects users with adoptable pets and provides tools for reporting
 - Role-based access control
 - Multi-factor authentication (MFA)
 
+## Website Screenshots
+
+The following screenshots provide an overview of the AdoptAPet platform, showcasing its user interface and main functionalities.
+
+### 1. Homepage
+
+![AdoptAPet Homepage](public/assets/images/homepage.jpg)
+
+### 2. Browse Pets
+
+![Pet Listing](public/assets/images/Petlisting.png)
+
+### 3. Pet Details
+
+![Pet Details](public/assets/images/petdetails.jpg)
+
+### 4. Adoption
+
+![Adoption Page](public/assets/images/adoptionpage.png)
+
+### 5. Stray Animal Reporting
+
+![Stray Animal Reporting](public/assets/images/strayreport.png)
+
+### 6. Community
+
+![Community](public/assets/images/community1.png)
+
+### 7. News
+
+![News](public/assets/images/news.png)
+
+### 8. Donations
+
+![Donations](public/assets/images/donations.png)
+
 ## Requirements
 
 - Windows with XAMPP
