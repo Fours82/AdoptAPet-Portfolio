@@ -376,27 +376,23 @@ try {
     $latitudeEmpty = $latitudeRaw === null || $latitudeRaw === '';
     $longitudeEmpty = $longitudeRaw === null || $longitudeRaw === '';
 
-    if ($latitudeEmpty !== $longitudeEmpty) {
+    if ($latitudeEmpty || $longitudeEmpty) {
         http_response_code(422);
-        echo json_encode(['success' => false, 'message' => 'Enter both latitude and longitude, or leave both blank.']);
+        echo json_encode(['success' => false, 'message' => 'Select a valid map location before submitting the Stray Report.']);
         exit;
     }
 
-    $latitude = null;
-    $longitude = null;
-    if (!$latitudeEmpty) {
-        if (!is_numeric($latitudeRaw) || !is_numeric($longitudeRaw)) {
-            http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Latitude and longitude must be valid numbers.']);
-            exit;
-        }
-        $latitude = (float) $latitudeRaw;
-        $longitude = (float) $longitudeRaw;
-        if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
-            http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Latitude or longitude is outside the valid range.']);
-            exit;
-        }
+    if (!is_numeric($latitudeRaw) || !is_numeric($longitudeRaw)) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'message' => 'Latitude and longitude must be valid numbers.']);
+        exit;
+    }
+    $latitude = (float) $latitudeRaw;
+    $longitude = (float) $longitudeRaw;
+    if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'message' => 'Latitude or longitude is outside the valid range.']);
+        exit;
     }
 
     $pdo->beginTransaction();

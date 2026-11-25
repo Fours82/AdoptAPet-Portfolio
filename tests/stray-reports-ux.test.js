@@ -46,6 +46,9 @@ match(style, /:has\(:is\(\.news-ux,\.news-detail-ux,\.community-ux,\.notificatio
 // The report form remains one form and one final submit, with client-side steps.
 for (const step of [1, 2, 3]) match(source, new RegExp(`data-stray-step="${step}"`));
 assert.equal((source.match(/id="stray-submit"/g) || []).length, 1);
+match(source, /id="search-stray-location"/);
+match(source, /id="stray-geocode-results"/);
+match(source, /Geocoding by <a href="https:\/\/nominatim\.openstreetmap\.org\//);
 match(source, /function setStrayReportStep\(step\)/);
 match(source, /if\(next===2\)setTimeout\(initStrayPickerMap,0\)/);
 match(source, /function nextStrayReportStep\(\).*validateStrayReportStep\(strayReportFormStep\)/);
@@ -62,11 +65,12 @@ match(style, /\.stray-report-grid \{[^}]*grid-template-columns: repeat\(3,minmax
 match(style, /@media \(max-width: 64rem\)[\s\S]*?\.stray-report-grid \{ grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
 match(style, /@media \(max-width: 42rem\)[\s\S]*?\.stray-discovery \.stray-search-row,\.stray-filter-grid,\.stray-report-grid \{ grid-template-columns: minmax\(0,1fr\)/);
 match(style, /\.public-site-shell \.stray-report-card:focus-visible \{[^}]*outline: 3px solid/);
+match(style, /\.stray-geocode-result:focus-visible \{[^}]*outline: 3px solid/);
 match(style, /\.public-site-shell \.floating-chat-shortcut \{[^}]*background: #df731f;[^}]*color: #fff;[^}]*text-decoration: none/);
 match(style, /\.public-site-shell \.floating-chat-shortcut:hover,[\s\S]*?background: #c86218;[^}]*color: #fff;[^}]*text-decoration: none/);
 match(style, /\.public-site-shell \.floating-chat-shortcut:focus-visible \{[^}]*outline: 3px solid/);
 doesNotMatch(style, /:has\(\.stray-(?:catalogue|form)-ux\) \.floating-chat-shortcut/);
-match(index, /style\.css\?v=136/);
-match(index, /stray-reports\.js\?v=21/);
+match(index, /style\.css\?v=137/);
+match(index, /stray-reports\.js\?v=22/);
 
 console.log('Stray Reports UX 2.0 structure, wizard, responsive layout and shared Chat checks passed.');

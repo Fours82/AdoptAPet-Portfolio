@@ -9,10 +9,16 @@ const source = fs.readFileSync(path.join(root, 'public/assets/js/stray-reports.j
 const router = fs.readFileSync(path.join(root, 'public/assets/js/app.js'), 'utf8');
 const index = fs.readFileSync(path.join(root, 'public/index.php'), 'utf8');
 const style = fs.readFileSync(path.join(root, 'public/assets/css/style.css'), 'utf8');
+const geocoder = fs.readFileSync(path.join(root, 'public/api/stray-geocode.php'), 'utf8');
+const reportApi = fs.readFileSync(path.join(root, 'public/api/stray-reports.php'), 'utf8');
 const context = vm.createContext({
   petStatusLabel: value => String(value),
   window: {isSecureContext: false},
   navigator: {},
+  URL,
+  AbortController,
+  fetch: async () => ({ok:false, status:502, json:async () => ({success:false})}),
+  setButtonBusy() {},
 });
 vm.runInContext(source, context);
 
@@ -25,6 +31,15 @@ assert.equal(vm.runInContext("strayStatusLabel('closed')", context), 'Unable to 
 doesNotMatch(source, /strayStatusTimeline\(report\.report_status\)/);
 doesNotMatch(source, /latitude\.toFixed\(7\).*longitude\.toFixed\(7\).*gallery=/);
 match(source, /validStrayCoordinates\(latitude,longitude\),gallery=/);
+match(source, /function searchStrayLocation\(\)/);
+match(source, /api\/stray-geocode\.php/);
+match(source, /function selectStrayGeocodeResult\(index\)/);
+match(source, /function syncStrayCoordinatesFromMarker\(\)/);
+match(geocoder, /STRAY_GEOCODE_MINIMUM_INTERVAL = 1\.0/);
+match(geocoder, /'countrycodes' => 'my'/);
+match(geocoder, /User-Agent: AdoptAPet-Stray-Report-Geocoder/);
+match(geocoder, /strayGeocodeWriteCache\(/);
+match(reportApi, /if\s*\(\$latitudeEmpty\s*\|\|\s*\$longitudeEmpty\)/);
 match(source, /expected_status:adminStrayCurrentVersion\.status/);
 match(source, /expected_admin_notes:adminStrayCurrentVersion\.notes/);
 match(source, /value!==['"]submitted['"]\|\|report\.report_status===['"]submitted['"]/);
@@ -32,8 +47,8 @@ match(source, /if\(strayReportSubmitting\)return/);
 match(source, /imageBatchUploadControl\('stray-images','stray-image-queue','Stray sighting images',3\)/);
 match(router, /r\.startsWith\('\/stray\/'\)/);
 match(router, /'\/report-stray':\(\)=>requireUser\(\)/);
-match(index, /stray-reports\.js\?v=21/);
-match(index, /style\.css\?v=136/);
+match(index, /stray-reports\.js\?v=22/);
+match(index, /style\.css\?v=137/);
 match(style, /\.stray-ux-detail \.stray-detail-main-image \{[^}]*object-fit: contain/);
 match(style, /\.stray-detail-fact \.stray-detail-icon \{[^}]*width: 1\.3125rem; height: 1\.3125rem/);
 doesNotMatch(style, /\.stray-rescue-updates|\.stray-rescue-note|\.stray-resolved-date|\.stray-detail-empty/);

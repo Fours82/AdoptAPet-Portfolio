@@ -15,7 +15,7 @@ $hcaptcha = hcaptchaConfiguration();
   <title>AdoptAPet — Web-Based Pet Adoption System</title>
   <link rel="preconnect" href="https://images.unsplash.com">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="assets/css/style.css?v=136">
+  <link rel="stylesheet" href="assets/css/style.css?v=137">
   <link rel="stylesheet" href="assets/css/auth.css?v=7">
   <link rel="stylesheet" href="assets/css/security.css?v=2">
   <link rel="stylesheet" href="assets/css/account.css?v=6">
@@ -36,7 +36,7 @@ $hcaptcha = hcaptchaConfiguration();
   <script src="assets/js/dashboards.js?v=4"></script>
   <script src="assets/js/image-editor.js?v=8"></script>
   <script src="assets/js/pets.js?v=36"></script>
-  <script src="assets/js/stray-reports.js?v=21"></script>
+  <script src="assets/js/stray-reports.js?v=22"></script>
   <script src="assets/js/home.js?v=5"></script>
   <script src="assets/js/applications.js?v=17"></script>
   <script src="assets/js/profile.js?v=25"></script>

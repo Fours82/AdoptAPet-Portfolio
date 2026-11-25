@@ -26,7 +26,8 @@ strayCheck(strayResolvedTimestampMode('assigned', 'resolved') === ['set_resolved
 $root = dirname(__DIR__);
 $public = file_get_contents($root . '/public/api/stray-reports.php');
 $admin = file_get_contents($root . '/public/api/admin-stray-reports.php');
-strayCheck(is_string($public) && is_string($admin), 'endpoint sources readable');
+$geocoder = file_get_contents($root . '/public/api/stray-geocode.php');
+strayCheck(is_string($public) && is_string($admin) && is_string($geocoder), 'endpoint sources readable');
 strayCheck(str_contains($public, 'MAX_STRAY_REPORT_IMAGES = 3')
     && str_contains($public, "storeRequestedImages('strays', MAX_STRAY_REPORT_IMAGES)")
     && str_contains($public, "'registered_user'")
@@ -40,9 +41,26 @@ strayCheck(str_contains($public, "unset(\$report['admin_notes'])")
 strayCheck(str_contains($public, 'SELECT file_path, sort_order')
     && !str_contains($public, "'original_filename' => \$image['original_filename']"),
     'public report detail does not reveal uploaded original filenames');
-strayCheck(str_contains($public, 'is_numeric($latitudeRaw)')
+strayCheck(str_contains($public, 'if ($latitudeEmpty || $longitudeEmpty)')
+    && str_contains($public, 'is_numeric($latitudeRaw)')
     && str_contains($public, '$latitude < -90 || $latitude > 90')
-    && str_contains($public, '$longitude < -180 || $longitude > 180'), 'server coordinate validation');
+    && str_contains($public, '$longitude < -180 || $longitude > 180'), 'required server coordinate validation');
+strayCheck(str_contains($geocoder, "'countrycodes' => 'my'")
+    && str_contains($geocoder, "'limit' => 5")
+    && str_contains($geocoder, 'STRAY_GEOCODE_MINIMUM_INTERVAL = 1.0')
+    && str_contains($geocoder, 'strayGeocodeWriteCache('), 'limited, cached Nominatim location lookup');
+strayCheck(str_contains($geocoder, 'ADOPTAPET_GEOCODER_REVERSE_URL')
+    && str_contains($geocoder, "'lat' => \$latitude")
+    && str_contains($geocoder, "'lon' => \$longitude")
+    && str_contains($geocoder, "hash('sha256', 'reverse|' . \$coordinateKey)")
+    && str_contains($geocoder, "'nominatim-rate.lock'")
+    && str_contains($geocoder, "'rate_limited' => true"),
+    'reverse lookup has its own configurable URL, cache key, and shared rate limiter');
+strayCheck(str_contains($geocoder, "if (!is_finite(\$latitude) || !is_finite(\$longitude)")
+    && str_contains($geocoder, '$latitude < -90 || $latitude > 90')
+    && str_contains($geocoder, '$longitude < -180 || $longitude > 180')
+    && str_contains($geocoder, "if (\$action === 'reverse')"),
+    'reverse lookup rejects invalid or out-of-range coordinates');
 strayCheck(str_contains($public, "'stray_report_status'")
     && str_contains($public, 'createNotificationRecord(')
     && str_contains($public, '$pdo->commit();'), 'submission receipt notification inside transaction');

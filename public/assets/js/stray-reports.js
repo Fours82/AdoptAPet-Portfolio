@@ -32,6 +32,14 @@ let strayPickerMap = null,
   adminStraySearchTimer = null,
   strayGeolocationPending = false,
   strayGeolocationDenied = false,
+  strayGeocodePending = false,
+  strayGeocodeRequestId = 0,
+  strayGeocodeAbortController = null,
+  strayGeocodeResults = [],
+  strayGpsLocationActive = false,
+  strayReverseGeocodeRequestId = 0,
+  strayReverseGeocodeAbortController = null,
+  strayReverseGeocodePending = false,
   adminStrayCurrentVersion = null;
 let publicStrayReports = [],
   publicStrayPage = 1,
@@ -380,9 +388,59 @@ function strayReportFormPage() {
   strayReportFormStep = 1;
   strayGeolocationPending = false;
   strayGeolocationDenied = false;
+  strayGeocodePending = false;
+  strayGeocodeAbortController?.abort();
+  strayGeocodeAbortController = null;
+  strayGeocodeRequestId++;
+  strayGeocodeResults = [];
+  strayGpsLocationActive = false;
+  strayReverseGeocodeAbortController?.abort();
+  strayReverseGeocodeAbortController = null;
+  strayReverseGeocodeRequestId++;
+  strayReverseGeocodePending = false;
   setTimeout(ensureStrayFinalCancel, 0);
   return shell(
-    `<div class="stray-form-ux"><header class="stray-page-heading"><h1>Report a Stray Sighting</h1><p>Share clear animal and location details so rescuers can assess the sighting.</p></header><nav class="stray-form-progress" aria-label="Stray Report progress"><ol><li class="is-current" data-stray-progress="1" aria-current="step"><span>1</span><b>Animal details</b></li><li data-stray-progress="2"><span>2</span><b>Location</b></li><li data-stray-progress="3"><span>3</span><b>Sighting information</b></li></ol></nav><form class="panel form-shell stray-report-form" onsubmit="submitStrayReport(event)" novalidate><div class="form-shell-content"><section class="form-step" data-stray-step="1"><header class="form-section-header"><span class="eyebrow">Step 1 of 3</span><h2>Animal details</h2><p>Provide your best estimate if you are unsure.</p></header><fieldset class="form-section stray-form-section"><legend>Basic information</legend><div class="form-grid"><div class="field"><label for="report-animal">Species <span class="required">*</span></label><select id="report-animal" required><option value="">Select species</option><option value="dog">Dog</option><option value="cat">Cat</option><option value="other">Other</option></select></div><div class="field"><label for="report-breed">Breed <span class="muted">(optional)</span></label><input id="report-breed" class="input" maxlength="100" placeholder="Unknown or breed if known"></div><div class="field"><label for="report-colour">Colour <span class="required">*</span></label><input id="report-colour" class="input" maxlength="100" required placeholder="e.g. Brown and white"></div><div class="field"><label for="report-size">Size <span class="required">*</span></label><select id="report-size" required><option value="">Select size</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option><option value="unknown">Unknown</option></select></div><div class="field"><label for="report-sex">Sex <span class="required">*</span></label><select id="report-sex" required><option value="male">Male</option><option value="female">Female</option><option value="unknown" selected>Unknown</option></select></div><div class="field"><label for="report-condition-category">Condition <span class="required">*</span></label><select id="report-condition-category" required><option value="">Select condition</option><option value="healthy">Healthy</option><option value="injured">Injured</option><option value="sick">Sick</option><option value="trapped">Trapped</option><option value="aggressive">Aggressive</option><option value="mother_with_litter">Mother with litter</option><option value="other">Other</option></select></div><div class="field full"><label for="report-urgency">Urgency <span class="required">*</span></label><select id="report-urgency" required><option value="medium">Normal</option><option value="high">Urgent</option></select></div></div></fieldset><div class="stray-step-actions"><a class="btn outline" href="#/strays">Cancel</a><button class="btn" type="button" onclick="nextStrayReportStep()">Continue to Location →</button></div></section><section class="form-step" data-stray-step="2" hidden><header class="form-section-header"><span class="eyebrow">Step 2 of 3</span><h2>Location</h2><p>Add an address or landmark; the map point remains optional.</p></header><fieldset class="form-section stray-form-section"><legend>Location selection</legend><div class="form-grid"><div class="field full"><label for="report-location">Address or landmark <span class="required">*</span></label><div class="field-with-icon">${uiIcon('pin', 'input-icon')}<input id="report-location" class="input" maxlength="255" required placeholder="Street, neighbourhood, landmark, city"></div><small class="helper">A text location is always accepted, even if location access or the map is unavailable.</small></div><div class="field full stray-map-picker"><div class="stray-map-heading"><div><label>Map location <span class="muted">(optional)</span></label><p class="helper">Click the map to place the pin, drag it to adjust the point, or use your current location.</p></div><button id="use-current-location" type="button" class="btn outline sm" onclick="useCurrentStrayLocation()">Use My Current Location</button></div><div id="stray-picker-map" class="stray-map" role="application" aria-label="Choose an optional stray sighting location on the map"></div><p id="stray-map-status" class="helper" role="status" aria-live="polite">No map point selected. The text location can still be submitted.</p><input id="report-latitude" type="hidden"><input id="report-longitude" type="hidden"></div></div></fieldset><div class="stray-step-actions"><button class="btn outline" type="button" onclick="previousStrayReportStep()">← Back</button><button class="btn" type="button" onclick="nextStrayReportStep()">Continue →</button></div></section><section class="form-step" data-stray-step="3" hidden><header class="form-section-header"><span class="eyebrow">Step 3 of 3</span><h2>Sighting information</h2><p>Add useful observations and up to three clear images.</p></header><fieldset class="form-section stray-form-section"><legend>Description and images</legend><div class="form-grid"><div class="field full stray-counted-field"><label for="report-description">Description <span class="required">*</span></label><textarea id="report-description" maxlength="5000" minlength="10" required rows="5" placeholder="Describe the animal, behaviour, surroundings, and when it was seen." oninput="updateStrayCharacterCount('report-description','report-description-count')"></textarea><small id="report-description-count" class="stray-character-count">0 / 5000</small></div><div class="field full stray-counted-field"><label for="report-condition">Additional observations <span class="muted">(optional)</span></label><textarea id="report-condition" maxlength="3000" rows="3" placeholder="Add injuries, behaviour, nearby risks, or other useful details." oninput="updateStrayCharacterCount('report-condition','report-condition-count')"></textarea><small id="report-condition-count" class="stray-character-count">0 / 3000</small></div><div class="field full">${imageBatchUploadControl('stray-images', 'stray-image-queue', 'Stray sighting images', 3)}</div></div></fieldset><aside class="stray-safety-reminder" aria-label="Safety reminder">${uiIcon('alert')}<span><b>Safety reminder</b><br>Do not approach an aggressive or injured animal. Contact local emergency or rescue services when immediate danger is present.</span></aside><div id="stray-form-validation" class="validation" role="alert" aria-live="polite"></div><div class="stray-step-actions"><button class="btn outline" type="button" onclick="previousStrayReportStep()">← Back</button><button id="stray-submit" class="btn" type="submit">Submit Stray Report</button></div></section></div></form></div>`,
+    `<div class="stray-form-ux">
+      <header class="stray-page-heading"><h1>Report a Stray Sighting</h1><p>Share clear animal and location details so rescuers can assess the sighting.</p></header>
+      <nav class="stray-form-progress" aria-label="Stray Report progress"><ol><li class="is-current" data-stray-progress="1" aria-current="step"><span>1</span><b>Animal details</b></li><li data-stray-progress="2"><span>2</span><b>Location</b></li><li data-stray-progress="3"><span>3</span><b>Sighting information</b></li></ol></nav>
+      <form class="panel form-shell stray-report-form" onsubmit="submitStrayReport(event)" novalidate><div class="form-shell-content">
+        <section class="form-step" data-stray-step="1"><header class="form-section-header"><span class="eyebrow">Step 1 of 3</span><h2>Animal details</h2><p>Provide your best estimate if you are unsure.</p></header>
+          <fieldset class="form-section stray-form-section"><legend>Basic information</legend><div class="form-grid">
+            <div class="field"><label for="report-animal">Species <span class="required">*</span></label><select id="report-animal" required><option value="">Select species</option><option value="dog">Dog</option><option value="cat">Cat</option><option value="other">Other</option></select></div>
+            <div class="field"><label for="report-breed">Breed <span class="muted">(optional)</span></label><input id="report-breed" class="input" maxlength="100" placeholder="Unknown or breed if known"></div>
+            <div class="field"><label for="report-colour">Colour <span class="required">*</span></label><input id="report-colour" class="input" maxlength="100" required placeholder="e.g. Brown and white"></div>
+            <div class="field"><label for="report-size">Size <span class="required">*</span></label><select id="report-size" required><option value="">Select size</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option><option value="unknown">Unknown</option></select></div>
+            <div class="field"><label for="report-sex">Sex <span class="required">*</span></label><select id="report-sex" required><option value="male">Male</option><option value="female">Female</option><option value="unknown" selected>Unknown</option></select></div>
+            <div class="field"><label for="report-condition-category">Condition <span class="required">*</span></label><select id="report-condition-category" required><option value="">Select condition</option><option value="healthy">Healthy</option><option value="injured">Injured</option><option value="sick">Sick</option><option value="trapped">Trapped</option><option value="aggressive">Aggressive</option><option value="mother_with_litter">Mother with litter</option><option value="other">Other</option></select></div>
+            <div class="field full"><label for="report-urgency">Urgency <span class="required">*</span></label><select id="report-urgency" required><option value="medium">Normal</option><option value="high">Urgent</option></select></div>
+          </div></fieldset>
+          <div class="stray-step-actions"><a class="btn outline" href="#/strays">Cancel</a><button class="btn" type="button" onclick="nextStrayReportStep()">Continue to Location →</button></div>
+        </section>
+        <section class="form-step" data-stray-step="2" hidden><header class="form-section-header"><span class="eyebrow">Step 2 of 3</span><h2>Location</h2><p>Enter an address or landmark and place the map pin at the reported sighting location.</p></header>
+          <fieldset class="form-section stray-form-section"><legend>Location selection</legend><div class="form-grid">
+            <div class="field full"><label for="report-location">Address or landmark <span class="required">*</span></label>
+              <div class="stray-location-search-row"><div class="field-with-icon">${uiIcon('pin', 'input-icon')}<input id="report-location" class="input" maxlength="255" required placeholder="Street, neighbourhood, landmark, city" oninput="invalidateStrayLocationSelection()"></div><button id="search-stray-location" type="button" class="btn outline sm" onclick="searchStrayLocation()">Search Location</button></div>
+              <small class="helper">Search sends only this location text. Using current location sends only its coordinates for address lookup; reporter details and report descriptions are not sent.</small>
+              <p id="stray-geocode-feedback" class="helper" role="status" aria-live="polite"></p><ul id="stray-geocode-results" class="stray-geocode-results" aria-label="Matching locations"></ul>
+              <p class="stray-geocode-attribution helper"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> · Geocoding by <a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a></p>
+            </div>
+            <div class="field full stray-map-picker"><div class="stray-map-heading"><div><label>Map location <span class="required">*</span></label><p class="helper">Select a search result or click the map to place a pin. Drag the marker to adjust it.</p></div><button id="use-current-location" type="button" class="btn outline sm" onclick="useCurrentStrayLocation()">Use My Current Location</button></div>
+              <div id="stray-picker-map" class="stray-map" role="application" aria-label="Choose the stray sighting location on the map"></div><p id="stray-map-status" class="helper" role="status" aria-live="polite">Search and select a location, or place a marker on the map.</p><input id="report-latitude" type="hidden"><input id="report-longitude" type="hidden">
+            </div>
+          </div></fieldset>
+          <div class="stray-step-actions"><button class="btn outline" type="button" onclick="previousStrayReportStep()">← Back</button><button class="btn" type="button" onclick="nextStrayReportStep()">Continue →</button></div>
+        </section>
+        <section class="form-step" data-stray-step="3" hidden><header class="form-section-header"><span class="eyebrow">Step 3 of 3</span><h2>Sighting information</h2><p>Add useful observations and up to three clear images.</p></header>
+          <fieldset class="form-section stray-form-section"><legend>Description and images</legend><div class="form-grid">
+            <div class="field full stray-counted-field"><label for="report-description">Description <span class="required">*</span></label><textarea id="report-description" maxlength="5000" minlength="10" required rows="5" placeholder="Describe the animal, behaviour, surroundings, and when it was seen." oninput="updateStrayCharacterCount('report-description','report-description-count')"></textarea><small id="report-description-count" class="stray-character-count">0 / 5000</small></div>
+            <div class="field full stray-counted-field"><label for="report-condition">Additional observations <span class="muted">(optional)</span></label><textarea id="report-condition" maxlength="3000" rows="3" placeholder="Add injuries, behaviour, nearby risks, or other useful details." oninput="updateStrayCharacterCount('report-condition','report-condition-count')"></textarea><small id="report-condition-count" class="stray-character-count">0 / 3000</small></div>
+            <div class="field full">${imageBatchUploadControl('stray-images', 'stray-image-queue', 'Stray sighting images', 3)}</div>
+          </div></fieldset>
+          <aside class="stray-safety-reminder" aria-label="Safety reminder">${uiIcon('alert')}<span><b>Safety reminder</b><br>Do not approach an aggressive or injured animal. Contact local emergency or rescue services when immediate danger is present.</span></aside>
+          <div id="stray-form-validation" class="validation" role="alert" aria-live="polite"></div><div class="stray-step-actions"><button class="btn outline" type="button" onclick="previousStrayReportStep()">← Back</button><button id="stray-submit" class="btn" type="submit">Submit Stray Report</button></div>
+        </section>
+      </div></form>
+    </div>`,
   );
 }
 
@@ -400,7 +458,7 @@ function strayStepFieldIds(step) {
       ? ['report-location']
       : ['report-description'];
 }
-function validateStrayReportStep(step) {
+function validateStrayReportStep(step, focusInvalid = true) {
   let validation = $('#stray-form-validation');
   if (validation) validation.textContent = '';
   for (let id of strayStepFieldIds(step)) {
@@ -417,10 +475,19 @@ function validateStrayReportStep(step) {
             ? 'Enter an address or landmark before continuing.'
             : 'Add a description of at least 10 characters.';
       if (validation) validation.textContent = message;
-      field.focus();
-      field.reportValidity?.();
+      if (focusInvalid) {
+        field.focus();
+        field.reportValidity?.();
+      }
       return false;
     }
+  }
+  if (step === 2 && !syncStrayCoordinatesFromMarker()) {
+    setStrayMapStatus(
+      'Select a search result, place a marker on the map, or use your current location before continuing.',
+      true,
+    );
+    return false;
   }
   return true;
 }
@@ -493,6 +560,232 @@ function setStrayMapStatus(message, error = false) {
     target.classList.toggle('validation', error);
   }
 }
+function setStrayGeocodeFeedback(message, error = false) {
+  let target = $('#stray-geocode-feedback');
+  if (target) {
+    target.textContent = message || '';
+    target.classList.toggle('validation', error);
+  }
+}
+function setStrayReverseFeedback(message, error = false) {
+  setStrayMapStatus(message || '', error);
+}
+function clearStrayGeocodeSearch() {
+  strayGeocodeRequestId++;
+  strayGeocodeAbortController?.abort();
+  strayGeocodeAbortController = null;
+  strayGeocodePending = false;
+  setButtonBusy($('#search-stray-location'), false);
+  strayGeocodeResults = [];
+  renderStrayGeocodeResults();
+  setStrayGeocodeFeedback('');
+}
+function renderStrayGeocodeResults() {
+  let target = $('#stray-geocode-results');
+  if (!target) return;
+  target.innerHTML = strayGeocodeResults
+    .map(
+      (result, index) =>
+        `<li><button class="stray-geocode-result" type="button" aria-label="Select location: ${esc(result.display_name)}" aria-pressed="false" onclick="selectStrayGeocodeResult(${index})">${esc(result.display_name)}</button></li>`,
+    )
+    .join('');
+}
+function invalidateStrayLocationSelection() {
+  clearStrayGeocodeSearch();
+  let latitudeInput = $('#report-latitude'),
+    longitudeInput = $('#report-longitude'),
+    hadSelection = Boolean(latitudeInput?.value || longitudeInput?.value);
+  if (strayGpsLocationActive && hadSelection && strayPickerMarker) {
+    setStrayMapStatus('Address text updated. The GPS marker was kept; check that both identify the sighting.');
+    return;
+  }
+  strayGpsLocationActive = false;
+  if (latitudeInput) latitudeInput.value = '';
+  if (longitudeInput) longitudeInput.value = '';
+  if (strayPickerMap && strayPickerMarker) {
+    strayPickerMap.removeLayer(strayPickerMarker);
+    strayPickerMarker = null;
+  }
+  if (hadSelection)
+    setStrayMapStatus(
+      'Location text changed. Search again or place a new marker on the map.',
+    );
+}
+async function searchStrayLocation() {
+  let input = $('#report-location'),
+    button = $('#search-stray-location'),
+    query = input?.value.trim() || '';
+  if (!input || strayGeocodePending) return;
+  if (!query || query.length > 255) {
+    setStrayGeocodeFeedback('Enter a location of up to 255 characters.', true);
+    input.focus();
+    return;
+  }
+  let requestId = ++strayGeocodeRequestId;
+  strayGeocodePending = true;
+  strayGeocodeAbortController = new AbortController();
+  strayGeocodeResults = [];
+  renderStrayGeocodeResults();
+  setButtonBusy(button, true, 'Searching…');
+  setStrayGeocodeFeedback('Searching OpenStreetMap for matching locations…');
+  try {
+    let response = await fetch(
+        new URL('api/stray-geocode.php', window.location.href),
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          signal: strayGeocodeAbortController.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        },
+      ),
+      result = await response.json();
+    if (requestId !== strayGeocodeRequestId) return;
+    if (!response.ok || !result.success) {
+      setStrayGeocodeFeedback(
+        result.message || 'Location search is temporarily unavailable.',
+        true,
+      );
+      return;
+    }
+    strayGeocodeResults = Array.isArray(result.results)
+      ? result.results.filter(
+          (item) =>
+            typeof item?.display_name === 'string' &&
+            validStrayCoordinates(Number(item.latitude), Number(item.longitude)),
+        )
+      : [];
+    renderStrayGeocodeResults();
+    setStrayGeocodeFeedback(
+      strayGeocodeResults.length
+        ? 'Choose the matching location below. The marker can be adjusted on the map.'
+        : 'No matching locations found. Try adding the city or region, or place a marker manually.',
+      strayGeocodeResults.length === 0,
+    );
+  } catch (error) {
+    if (requestId === strayGeocodeRequestId) {
+      setStrayGeocodeFeedback(
+        'Location search is temporarily unavailable. Try again later or place a marker manually.',
+        true,
+      );
+    }
+  } finally {
+    if (requestId === strayGeocodeRequestId) {
+      strayGeocodePending = false;
+      strayGeocodeAbortController = null;
+      setButtonBusy(button, false);
+    }
+  }
+}
+function selectStrayGeocodeResult(index) {
+  let result = strayGeocodeResults[index],
+    latitude = Number(result?.latitude),
+    longitude = Number(result?.longitude);
+  if (!result || !validStrayCoordinates(latitude, longitude)) return;
+  if (typeof L === 'undefined' || !strayPickerMap) {
+    setStrayMapStatus(
+      'The map is unavailable, so a location marker cannot be placed. Please try again later.',
+      true,
+    );
+    return;
+  }
+  strayGpsLocationActive = false;
+  setStrayCoordinates(latitude, longitude, true);
+  let locationInput = $('#report-location'),
+    selectedAddress =
+      typeof result.display_name === 'string' ? result.display_name.trim() : '';
+  if (locationInput && selectedAddress) locationInput.value = selectedAddress;
+  setStrayGeocodeFeedback('');
+  renderStrayGeocodeResults();
+  let selected = $('#stray-geocode-results')?.children[index]?.querySelector('button');
+  selected?.setAttribute('aria-pressed', 'true');
+}
+function sameStrayCoordinates(latitude, longitude) {
+  let latitudeInput = $('#report-latitude'),
+    longitudeInput = $('#report-longitude');
+  return Boolean(
+    latitudeInput?.value &&
+      longitudeInput?.value &&
+      Number(latitudeInput.value) === Number(Number(latitude).toFixed(7)) &&
+      Number(longitudeInput.value) === Number(Number(longitude).toFixed(7)),
+  );
+}
+async function requestStrayAddressSuggestion(latitude, longitude) {
+  if (!validStrayCoordinates(Number(latitude), Number(longitude))) {
+    setStrayReverseFeedback('Select a valid map location before looking up its address.', true);
+    return;
+  }
+  let requestLatitude = Number(Number(latitude).toFixed(7)),
+    requestLongitude = Number(Number(longitude).toFixed(7)),
+    locationInput = $('#report-location'),
+    locationTextAtRequest = locationInput?.value ?? '';
+  strayReverseGeocodeRequestId++;
+  let requestId = strayReverseGeocodeRequestId;
+  strayReverseGeocodeAbortController?.abort();
+  strayReverseGeocodeAbortController = new AbortController();
+  strayReverseGeocodePending = true;
+  clearStrayGeocodeSearch();
+  setStrayReverseFeedback('Looking up an address for your map location…');
+  try {
+    let response = await fetch(
+        new URL('api/stray-geocode.php', window.location.href),
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          signal: strayReverseGeocodeAbortController.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'reverse',
+            latitude: requestLatitude,
+            longitude: requestLongitude,
+          }),
+        },
+      ),
+      result = await response.json();
+    if (requestId !== strayReverseGeocodeRequestId) return;
+    if (!sameStrayCoordinates(requestLatitude, requestLongitude)) return;
+    if (!response.ok || !result.success) {
+      let message =
+        response.status === 429
+          ? result.message || 'Please wait a moment before looking up this address.'
+          : result.message || 'Address lookup is temporarily unavailable.';
+      setStrayReverseFeedback(
+        `${message} Your map pin is kept; you can enter the address manually.`,
+        true,
+      );
+      return;
+    }
+    let suggestion =
+      typeof result.address_suggestion === 'string'
+        ? result.address_suggestion.trim()
+        : '';
+    if (!suggestion) {
+      setStrayReverseFeedback(
+        'No readable address was found for this pin. Your map location is kept; enter an address or landmark manually.',
+        true,
+      );
+      return;
+    }
+    if (!locationInput || locationInput.value !== locationTextAtRequest) {
+      setStrayReverseFeedback('The address text changed while the lookup was running. Your pin is kept; review the address field.', true);
+      return;
+    }
+    locationInput.value = suggestion;
+    setStrayReverseFeedback('Address updated from the selected map location. Check it against the marker.');
+  } catch (error) {
+    if (requestId === strayReverseGeocodeRequestId) {
+      setStrayReverseFeedback(
+        'Address lookup is temporarily unavailable. Your map pin is kept; you can enter the address manually.',
+        true,
+      );
+    }
+  } finally {
+    if (requestId === strayReverseGeocodeRequestId) {
+      strayReverseGeocodePending = false;
+      strayReverseGeocodeAbortController = null;
+    }
+  }
+}
 function strayGeolocationUnavailableMessage() {
   if (!window.isSecureContext)
     return 'Current Location requires HTTPS or the localhost compatibility URL. You can still type a location or click the map.';
@@ -512,10 +805,23 @@ function configureStrayGeolocation() {
 }
 function setStrayCoordinates(latitude, longitude, center = true) {
   if (!validStrayCoordinates(latitude, longitude)) return;
-  let latitudeInput = $('#report-latitude'),
-    longitudeInput = $('#report-longitude');
-  if (latitudeInput) latitudeInput.value = latitude.toFixed(7);
-  if (longitudeInput) longitudeInput.value = longitude.toFixed(7);
+  let nextLatitude = latitude.toFixed(7),
+    nextLongitude = longitude.toFixed(7),
+    latitudeInput = $('#report-latitude'),
+    longitudeInput = $('#report-longitude'),
+    coordinatesChanged =
+      latitudeInput?.value !== nextLatitude || longitudeInput?.value !== nextLongitude;
+  if (coordinatesChanged) {
+    let hadReverseLookup = strayReverseGeocodePending;
+    strayReverseGeocodeRequestId++;
+    strayReverseGeocodeAbortController?.abort();
+    strayReverseGeocodeAbortController = null;
+    strayReverseGeocodePending = false;
+    if (hadReverseLookup)
+      setStrayReverseFeedback('The map pin changed. The address field was left unchanged.');
+  }
+  if (latitudeInput) latitudeInput.value = nextLatitude;
+  if (longitudeInput) longitudeInput.value = nextLongitude;
   if (strayPickerMap) {
     if (!strayPickerMarker) {
       strayPickerMarker = L.marker([latitude, longitude], {
@@ -523,14 +829,20 @@ function setStrayCoordinates(latitude, longitude, center = true) {
       }).addTo(strayPickerMap);
       strayPickerMarker.on('dragend', (event) => {
         let point = event.target.getLatLng();
+        strayGpsLocationActive = false;
         setStrayCoordinates(point.lat, point.lng, false);
       });
     } else strayPickerMarker.setLatLng([latitude, longitude]);
     if (center) strayPickerMap.setView([latitude, longitude], 16);
   }
-  setStrayMapStatus(
-    `Selected coordinates: ${latitude.toFixed(7)}, ${longitude.toFixed(7)}`,
-  );
+  setStrayMapStatus('Map location selected. Drag the marker to adjust the location.');
+}
+function syncStrayCoordinatesFromMarker() {
+  if (!strayPickerMap || !strayPickerMarker) return false;
+  let point = strayPickerMarker.getLatLng();
+  if (!validStrayCoordinates(point.lat, point.lng)) return false;
+  setStrayCoordinates(point.lat, point.lng, false);
+  return true;
 }
 function syncStrayMarkerFromInputs() {
   let latitude = Number($('#report-latitude')?.value),
@@ -548,9 +860,9 @@ function initStrayPickerMap() {
   configureStrayGeolocation();
   if (typeof L === 'undefined') {
     container.innerHTML =
-      '<div class="map-fallback">The optional map could not load. You can still submit the report using the Location field.</div>';
+      '<div class="map-fallback">The map could not load. A map marker is required to submit a Stray Report. Please try again later.</div>';
     setStrayMapStatus(
-      'Map unavailable; the Location text field remains available.',
+      'Map unavailable; a map marker is required before submission.',
       true,
     );
     return;
@@ -563,9 +875,10 @@ function initStrayPickerMap() {
   strayPickerMarker = null;
   strayPickerMap = L.map(container).setView(STRAY_MAP_DEFAULT, 11);
   strayMapTileLayer().addTo(strayPickerMap);
-  strayPickerMap.on('click', (event) =>
-    setStrayCoordinates(event.latlng.lat, event.latlng.lng, false),
-  );
+  strayPickerMap.on('click', (event) => {
+    strayGpsLocationActive = false;
+    setStrayCoordinates(event.latlng.lat, event.latlng.lng, false);
+  });
   syncStrayMarkerFromInputs();
   setTimeout(() => strayPickerMap?.invalidateSize(), 0);
 }
@@ -592,9 +905,11 @@ function useCurrentStrayLocation() {
     (position) => {
       strayGeolocationPending = false;
       let { latitude, longitude } = position.coords;
-      if (validStrayCoordinates(latitude, longitude))
+      if (validStrayCoordinates(latitude, longitude)) {
         setStrayCoordinates(latitude, longitude, true);
-      else
+        strayGpsLocationActive = true;
+        requestStrayAddressSuggestion(latitude, longitude);
+      } else
         setStrayMapStatus(
           'The browser returned an invalid location. You can still use the form normally.',
           true,
@@ -654,7 +969,24 @@ async function submitStrayReport(event) {
     return;
   }
   if (strayReportSubmitting) return;
+  if (!validateStrayReportStep(2, false)) {
+    setStrayReportStep(2);
+    let locationInput = $('#report-location');
+    if (!locationInput?.value.trim()) {
+      setStrayMapStatus('Enter an address or landmark for the reported sighting.', true);
+      locationInput?.focus();
+    }
+    return;
+  }
   if (!validateStrayReportStep(3)) return;
+  if (!syncStrayCoordinatesFromMarker()) {
+    setStrayReportStep(2);
+    setStrayMapStatus(
+      'Select a search result, place a marker on the map, or use your current location before submitting.',
+      true,
+    );
+    return;
+  }
   let payload = {
       animal_type: $('#report-animal').value,
       breed: $('#report-breed').value.trim(),

@@ -19211,3 +19211,70 @@ body:has(.admin-workspace-shell)>.modal-overlay [data-admin-modal] :focus-visibl
   width: auto;
   text-align: center;
 }
+
+/* Explicit Stray Report geocoding search and selectable location matches. */
+.stray-location-search-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.stray-location-search-row > .field-with-icon {
+  flex: 1;
+  min-width: 0;
+}
+
+.stray-location-search-row > .btn {
+  flex-shrink: 0;
+}
+
+.stray-geocode-results {
+  display: grid;
+  gap: .4rem;
+  margin: .55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stray-geocode-results:empty {
+  display: none;
+}
+
+.stray-geocode-result {
+  width: 100%;
+  padding: .65rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, .4rem);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #342b25);
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.stray-geocode-result:hover,
+.stray-geocode-result[aria-pressed="true"] {
+  border-color: var(--color-primary-600, #785238);
+  background: var(--color-primary-50, #f8f1e9);
+}
+
+.stray-geocode-result:focus-visible {
+  outline: 3px solid var(--color-primary-600, #785238);
+  outline-offset: 2px;
+}
+
+.stray-geocode-attribution {
+  margin: .45rem 0 0;
+  font-size: .78rem;
+}
+
+@media (max-width: 42rem) {
+  .stray-location-search-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stray-location-search-row > .btn {
+    width: 100%;
+  }
+}
