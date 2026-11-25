@@ -192,7 +192,10 @@ try {
             'SELECT d.id,
                     CASE
                         WHEN d.is_anonymous = 1 THEN :anonymous_name
-                        ELSE COALESCE(u.username, d.donor_name)
+                        ELSE CASE
+                            WHEN d.donor_name REGEXP \'[^[:space:]]\' THEN d.donor_name
+                            ELSE u.username
+                        END
                     END AS donor_display_name,
                     d.is_anonymous, d.amount, d.currency, COALESCE(d.donated_at, d.created_at) AS donated_at
              FROM donations d
