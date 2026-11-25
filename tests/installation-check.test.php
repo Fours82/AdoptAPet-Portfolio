@@ -80,6 +80,41 @@ installationTestAssert($validTables['matches'], 'table comparison ignores orderi
 $invalidObjects = installationCheckInvalidTableObjects([['TABLE_NAME' => 'pets', 'TABLE_TYPE' => 'BASE TABLE', 'ENGINE' => 'MyISAM']]);
 installationTestAssert($invalidObjects === ['pets'], 'non-InnoDB objects are refused');
 
+$rootBlankSettings = [
+    'host' => '127.0.0.1', 'port' => 3306, 'database' => 'adoptapet_demo',
+    'username' => 'root', 'password' => '',
+];
+installationTestAssert(
+    installationCheckDatabaseSettingsError($rootBlankSettings) === null,
+    'root with an intentionally blank password passes settings validation'
+);
+$rootPasswordSettings = $rootBlankSettings;
+$rootPasswordSettings['password'] = 'local-root-password';
+installationTestAssert(
+    installationCheckDatabaseSettingsError($rootPasswordSettings) === null,
+    'root with a password passes settings validation'
+);
+$dedicatedSettings = $rootBlankSettings;
+$dedicatedSettings['username'] = 'adoptapet_app';
+$dedicatedSettings['password'] = 'dedicated-app-password';
+installationTestAssert(
+    installationCheckDatabaseSettingsError($dedicatedSettings) === null,
+    'a dedicated non-root account remains supported'
+);
+$remoteSettings = $rootBlankSettings;
+$remoteSettings['host'] = 'db.example.invalid';
+installationTestAssert(
+    installationCheckDatabaseSettingsError($remoteSettings) !== null,
+    'non-loopback database hosts remain refused by the local checker'
+);
+installationTestAssert(
+    str_contains(installationCheckFailureCategory(1045), 'rejected the configured username, password')
+        && str_contains(installationCheckFailureCategory(1049), 'Database name not found')
+        && str_contains(installationCheckFailureCategory(1044), 'denied this account access')
+        && str_contains(installationCheckFailureCategory(1142), 'denied a permission'),
+    'authentication, missing-database, and permission errors have distinct guidance'
+);
+
 $smtpMissing = installationCheckSmtpStatus(['host' => '', 'username' => '', 'password' => '', 'from_email' => '', 'port' => 587], [], []);
 installationTestAssert(!$smtpMissing['ok'] && str_contains($smtpMissing['message'], 'can sign in without SMTP'), 'SMTP is informational for Demo sign-in');
 $captchaDisabled = installationCheckHcaptchaStatus(['enabled' => false], [], [], true);
@@ -97,5 +132,6 @@ installationTestAssert(
     'readiness checker does not issue data-changing SQL'
 );
 installationTestAssert(is_string($checker) && str_contains($checker, 'PDO::MYSQL_ATTR_MULTI_STATEMENTS => false'), 'database connection disables multi-statement SQL');
+installationTestAssert(is_string($checker) && str_contains($checker, 'new PDO($dsn, $username, $password'), 'validated settings still undergo a real PDO connection test');
 
 echo "Installation checker tests passed: {$checks} checks; no database connection or file mutation.\n";

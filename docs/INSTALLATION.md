@@ -35,26 +35,53 @@ For this local demo, do not install XAMPP services as Windows services or change
 
 The SQL creates the application tables and a Demo Super Administrator account. It does not include sample pets, news, or other demo content.
 
+The phpMyAdmin account used for this step needs permission to create the tables and import their seed data. This database setup/import account is separate from the account the website will use at runtime. The SQL does not create the database or change MariaDB accounts.
+
 **If the import fails, stop. Do not import the SQL again into a partially imported database. Use a different, empty database for a retry.**
 
 ### Step 4: Configure Database Access
 
-1. In phpMyAdmin, create a dedicated database user for `adoptapet_demo` at host `127.0.0.1`.
-2. Give the user `SELECT`, `INSERT`, `UPDATE`, and `DELETE` permissions on this database only. Do not use the database `root` account for the website.
-3. Open PowerShell in the project folder and run:
+For a local XAMPP installation, you can use MariaDB `root` as the application's database account. The example configuration uses:
+
+| Setting | Value |
+|---|---|
+| Host | `127.0.0.1` |
+| Port | `3306` |
+| Database | `adoptapet_demo` |
+| Username | `root` |
+| Password | Blank only if this local MariaDB `root` account actually has no password |
+
+If your root account has a password, enter that password. Do not remove a password from MariaDB to match the example. Using a broad-privilege account can increase the impact of an application compromise; **do not use this option for a publicly exposed production deployment**.
+
+If you prefer to keep application privileges limited, create a dedicated database user for `adoptapet_demo` at host `127.0.0.1` and grant it `SELECT`, `INSERT`, `UPDATE`, and `DELETE` permissions on this database only. Existing dedicated accounts such as `adoptapet_app` remain supported.
+
+1. Open PowerShell in the project folder and run:
 
    ```powershell
    Copy-Item .\config\database.example.php .\config\database.local.php
    notepad .\config\database.local.php
    ```
 
-4. Enter your database settings:
-   - Host: `127.0.0.1`
-   - Port: `3306`, or your configured MySQL port
-   - Database: `adoptapet_demo`
-   - Username and password: the dedicated database account you created
+2. Enter the settings for the account you chose above. For a standard local XAMPP root account with no password, use:
 
-5. Save the file and keep it private.
+   ```php
+   <?php
+   declare(strict_types=1);
+
+   return [
+       'host' => '127.0.0.1',
+       'port' => 3306,
+       'database' => 'adoptapet_demo',
+       'username' => 'root',
+       'password' => '',
+   ];
+   ```
+
+   For a root account with a password or a dedicated account, enter its actual username and password instead. An empty password is valid only when the MariaDB account itself has no password.
+
+3. Save the file and keep it private.
+
+Database environment variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASS`) take precedence over this file in the application. The installation checker requires the private file to be the active source and will stop without connecting if any `DB_*` variable is set; review or clear those variables before running the checker.
 
 ## Stage 3: Configure the Website URL
 
@@ -149,7 +176,7 @@ hCaptcha is disabled by default. The setup checker does not contact hCaptcha or 
 
 ## Common Problems
 
-- **Database connection fails:** Check that MySQL is running and that the database name, port, username, password, and `database.local.php` are correct.
+- **Database connection fails:** Check that MySQL is running and that the database name, port, username, password, account host, and `database.local.php` are correct. Error 1045 indicates MariaDB rejected the configured credentials or host; error 1049 indicates that the database name was not found; permission errors indicate the account lacks access to the database or a required read permission.
 - **The checker does not report `READY`:** Read the error, correct the reported problem, and run option 2 again.
 - **MFA setup fails:** Check that `config/mfa.local.php` exists and contains a valid key. Never replace a key that may be used by an existing installation.
 - **The website or assets do not load:** Check the project URL and local Apache configuration. Do not disable the project's access rules.

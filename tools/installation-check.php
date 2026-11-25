@@ -92,15 +92,46 @@ function installationCheckFailureCategory(?int $code): string
         return 'Database name not found. Create a new empty demo database before importing the schema.';
     }
     if ($code === 1045) {
-        return 'Database server rejected the username or password. Check the dedicated local account; no password was displayed.';
+        return 'MariaDB rejected the configured username, password, or account host. Check the credentials and host grant; no password was displayed.';
     }
-    if (in_array($code, [1044, 1142, 1143], true)) {
-        return 'Database account lacks access or SELECT permission. Check its grants on this database.';
+    if ($code === 1044) {
+        return 'MariaDB denied this account access to the configured database. Check the database name and account grants.';
+    }
+    if (in_array($code, [1142, 1143, 1227], true)) {
+        return 'MariaDB denied a permission required to inspect the configured database. Check the account grants, including SELECT access.';
     }
     if (in_array($code, [2002, 2003, 2005], true)) {
         return 'Local database service, host, or port could not be reached. Check XAMPP and the configured port.';
     }
     return 'Database connection or read-only inspection failed. Check local settings and SELECT permission; diagnostic values were suppressed.';
+}
+
+/** Returns a safe validation error, or null when settings may be tried by PDO. */
+function installationCheckDatabaseSettingsError(array $settings): ?string
+{
+    $host = strtolower(trim((string) ($settings['host'] ?? ''), '[]'));
+    $database = $settings['database'] ?? null;
+    $username = $settings['username'] ?? null;
+    $password = $settings['password'] ?? null;
+    $port = $settings['port'] ?? 3306;
+
+    if (!in_array($host, ['127.0.0.1', 'localhost', '::1'], true)) {
+        return 'Only loopback database hosts are accepted.';
+    }
+    if (!is_string($database) || preg_match('/^[A-Za-z0-9_]{1,64}$/D', $database) !== 1) {
+        return 'The configured database name is invalid.';
+    }
+    if (!is_string($username) || trim($username) === '') {
+        return 'A database username is required.';
+    }
+    if (!is_string($password)) {
+        return 'The configured database password must be a string; an empty string is allowed.';
+    }
+    if (!is_int($port) || $port < 1 || $port > 65535) {
+        return 'The configured database port is invalid.';
+    }
+
+    return null;
 }
 
 function installationCheckPlaceholder(string $value): bool
@@ -350,7 +381,7 @@ function installationCheckMain(array $arguments, ?string $projectRoot = null): i
 
     $databaseLocal = $root . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'database.local.php';
     if (!is_file($databaseLocal)) {
-        installationCheckLine('ACTION', 'config/database.local.php is missing. Copy database.example.php and enter the new dedicated database settings. No connection was attempted.');
+        installationCheckLine('ACTION', 'config/database.local.php is missing. Copy database.example.php and enter the database settings. No connection was attempted.');
         $ready = false;
     } else {
         $databaseEnvironmentPresent = false;
@@ -377,16 +408,9 @@ function installationCheckMain(array $arguments, ?string $projectRoot = null): i
                 $username = $settings['username'];
                 $password = $settings['password'];
                 $port = $settings['port'] ?? 3306;
-                if (!in_array($host, ['127.0.0.1', 'localhost', '::1'], true)) {
-                    throw new RuntimeException('Only loopback database hosts are accepted.');
-                }
-                if (strtolower($username) === 'root') {
-                    throw new RuntimeException('Use a dedicated database user.');
-                }
-                if (!is_string($database) || preg_match('/^[A-Za-z0-9_]{1,64}$/D', $database) !== 1
-                    || !is_string($username) || $username === '' || !is_string($password) || $password === ''
-                    || !is_int($port) || $port < 1 || $port > 65535) {
-                    throw new RuntimeException('Local database settings are incomplete or invalid.');
+                $settingsError = installationCheckDatabaseSettingsError($settings);
+                if ($settingsError !== null) {
+                    throw new RuntimeException($settingsError);
                 }
             } catch (Throwable $exception) {
                 installationCheckLine('FAIL', $exception instanceof PDOException

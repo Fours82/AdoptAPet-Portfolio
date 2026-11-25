@@ -56,12 +56,14 @@ The following screenshots provide an overview of the AdoptAPet platform, showcas
 - Windows with XAMPP
 - PHP 8.1 or later
 - MariaDB / MySQL
-- Composer, if dependencies need to be installed
+- Composer, only if `vendor/autoload.php` is missing
 - Node.js, only for JavaScript tests
 
 ## Installation
 
 For a new local installation, follow the [Installation Guide](docs/INSTALLATION.md).
+
+The local XAMPP setup supports MariaDB `root`, including a blank password only when that local root account actually has no password. A dedicated database account such as `adoptapet_app` is also supported. Using `root` can expose broader database privileges and is not recommended for publicly exposed production deployments.
 
 The installation guide covers:
 
@@ -69,7 +71,7 @@ The installation guide covers:
 - Database creation and configuration
 - MFA setup and installation checks
 - Demo administrator sign-in
-- Optional email and hCaptcha configuration
+- Optional email, hCaptcha, and local HTTPS configuration
 
 **Demo security:** The public SQL includes a shared demonstration administrator account. Keep the installation local and never use the Demo credentials in production.
 
